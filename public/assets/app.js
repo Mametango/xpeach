@@ -10,18 +10,3 @@ document.querySelector('[data-age-accept]')?.addEventListener('click', () => {
   document.body.classList.remove('age-locked');
   gate?.remove();
 });
-
-document.addEventListener('click', (event) => {
-  const trigger = event.target.closest('[data-inline-video]');
-  if (!trigger) return;
-  const video = document.createElement('video');
-  video.controls = true;
-  video.autoplay = true;
-  video.playsInline = true;
-  video.preload = 'metadata';
-  video.src = trigger.dataset.videoSrc;
-  if (trigger.dataset.poster) video.poster = trigger.dataset.poster;
-  video.className = 'inline-card-video';
-  trigger.replaceWith(video);
-  video.play().catch(() => {});
-});

@@ -73,7 +73,7 @@ def duration_label(video: Video) -> str:
 def card(video: Video) -> str:
     playable = media(video)
     poster = thumbnail(video)
-    poster_attr = f' data-poster="{esc(poster)}"' if poster else ""
+    poster_attr = f' poster="{esc(poster)}"' if poster else ""
     image = (
         f'<img src="{esc(poster)}" alt="@{esc(video.x_username)}の動画サムネイル" loading="lazy" decoding="async">'
         if poster
@@ -81,10 +81,10 @@ def card(video: Video) -> str:
     )
     if playable:
         visual = (
-            f'<div class="media-frame inline-player" data-inline-player><button class="inline-video-trigger" '
-            f'type="button" data-inline-video data-video-src="{esc(playable.media_reference)}"{poster_attr} '
-            f'aria-label="@{esc(video.x_username)}の動画を再生">{image}<span class="play-mark">▶</span>'
-            f'{duration_label(video)}</button></div>'
+            f'<div class="media-frame inline-player"><video class="inline-card-video" controls playsinline '
+            f'preload="none" aria-label="@{esc(video.x_username)}の動画を再生"'
+            f'{poster_attr}>'
+            f'<source src="{esc(playable.media_reference)}" type="video/mp4">動画を再生できません。</video></div>'
         )
     else:
         visual = (
@@ -117,7 +117,7 @@ def shell(*, title: str, description: str, canonical_path: str, content: str, og
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https://pbs.twimg.com data:; media-src https://video.twimg.com; style-src 'self' 'unsafe-inline'; script-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
   <title>{esc(title)} | XPeach</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/assets/app.css">
+  <link rel="stylesheet" href="/assets/app.css?v=20260916-2">
 </head>
 <body>
   <div class="age-gate" data-age-gate role="dialog" aria-modal="true" aria-labelledby="age-title">
@@ -126,7 +126,7 @@ def shell(*, title: str, description: str, canonical_path: str, content: str, og
   <header class="site-header"><div class="header-inner"><a class="brand" href="/"><img src="/assets/logo.svg" alt="" width="34" height="34"><b>XPeach</b></a><nav><a href="/new/">新着</a><a href="/popular/">人気</a><a href="/trending/">急上昇</a></nav></div></header>
   <main>{content}</main>
   <footer><span>XPeach — 元投稿を尊重するクリップガイド</span></footer>
-  <script src="/assets/app.js" defer></script>
+  <script src="/assets/app.js?v=20260916-2" defer></script>
 </body>
 </html>'''
 
