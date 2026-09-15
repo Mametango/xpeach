@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /admin
+Disallow: /report-received
+Sitemap: https://xpeach.tv/sitemap.xml
