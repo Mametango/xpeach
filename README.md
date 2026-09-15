@@ -15,5 +15,12 @@ generated `/tmp/xpeach-public` directory to `public`, then review and push it.
 Only videos with `publication_status=published`, `is_public=true`, and no X
 deletion timestamp are exported.
 
+Published HTML uses `https://admin.xpeach.tv/media/video/{media_id}` as the
+video source. That endpoint relays only saved official X MP4 URLs and rechecks
+the current publication state, so stopped/deleted videos disappear without a
+new X API call. The shared `age_verified=true` cookie is the only value passed
+between `xpeach.tv` and the media relay subdomain. Keep the `xpeach-admin`
+Named Tunnel and its Docker service running for playback.
+
 Never commit `.env`, API tokens, authorization headers, database credentials,
 or AI keys. Use Cloudflare Secrets if Worker-side secrets are introduced later.

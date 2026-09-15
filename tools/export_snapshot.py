@@ -24,6 +24,7 @@ from app.models import Video
 
 
 BASE_URL = "https://xpeach.tv"
+MEDIA_BASE_URL = "https://admin.xpeach.tv"
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 OUTPUT = Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/xpeach-public").resolve()
 if OUTPUT == Path("/") or not str(OUTPUT).startswith("/tmp/"):
@@ -80,11 +81,12 @@ def card(video: Video) -> str:
         else '<div class="guide-placeholder"><span>▶</span><strong>X動画クリップ</strong></div>'
     )
     if playable:
+        media_url = f"{MEDIA_BASE_URL}/media/video/{playable.id}"
         visual = (
             f'<div class="media-frame inline-player"><video class="inline-card-video" controls playsinline '
             f'preload="none" aria-label="@{esc(video.x_username)}の動画を再生"'
             f'{poster_attr}>'
-            f'<source src="{esc(playable.media_reference)}" type="video/mp4">動画を再生できません。</video></div>'
+            f'<source src="{esc(media_url)}" type="video/mp4">動画を再生できません。</video></div>'
         )
     else:
         visual = (
@@ -114,10 +116,10 @@ def shell(*, title: str, description: str, canonical_path: str, content: str, og
   <meta property="og:title" content="{esc(title)}">
   <meta property="og:description" content="{esc(description)}">
   <meta property="og:url" content="{esc(canonical)}">{og}
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https://pbs.twimg.com data:; media-src https://video.twimg.com; style-src 'self' 'unsafe-inline'; script-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https://pbs.twimg.com data:; media-src https://admin.xpeach.tv; style-src 'self' 'unsafe-inline'; script-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
   <title>{esc(title)} | XPeach</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/assets/app.css?v=20260916-2">
+  <link rel="stylesheet" href="/assets/app.css?v=20260916-3">
 </head>
 <body>
   <div class="age-gate" data-age-gate role="dialog" aria-modal="true" aria-labelledby="age-title">
@@ -126,7 +128,7 @@ def shell(*, title: str, description: str, canonical_path: str, content: str, og
   <header class="site-header"><div class="header-inner"><a class="brand" href="/"><img src="/assets/logo.svg" alt="" width="34" height="34"><b>XPeach</b></a><nav><a href="/new/">新着</a><a href="/popular/">人気</a><a href="/trending/">急上昇</a></nav></div></header>
   <main>{content}</main>
   <footer><span>XPeach — 元投稿を尊重するクリップガイド</span></footer>
-  <script src="/assets/app.js?v=20260916-2" defer></script>
+  <script src="/assets/app.js?v=20260916-3" defer></script>
 </body>
 </html>'''
 
@@ -147,8 +149,9 @@ def detail(video: Video) -> str:
     playable = media(video)
     poster = thumbnail(video)
     if playable:
+        media_url = f"{MEDIA_BASE_URL}/media/video/{playable.id}"
         poster_attr = f' poster="{esc(poster)}"' if poster else ""
-        player = f'<video class="public-video-player" controls playsinline preload="metadata"{poster_attr}><source src="{esc(playable.media_reference)}" type="video/mp4">動画を再生できません。</video>'
+        player = f'<video class="public-video-player" controls playsinline preload="metadata"{poster_attr}><source src="{esc(media_url)}" type="video/mp4">動画を再生できません。</video>'
     elif poster:
         player = f'<img class="detail-poster" src="{esc(poster)}" alt="@{esc(video.x_username)}の動画"><a class="x-button" href="{esc(video.x_post_url)}" target="_blank" rel="noopener noreferrer">Xで見る ↗</a>'
     else:
