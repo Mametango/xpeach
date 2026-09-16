@@ -1,4 +1,9 @@
 User-agent: *
+Allow: /
 Disallow: /admin
+Disallow: /admin/
+Disallow: /api/admin
+Disallow: /api/admin/
 Disallow: /report-received
-Sitemap: https://xpeach.tv/sitemap.xml
+
+Sitemap: https://www.xpeach.tv/sitemap.xml

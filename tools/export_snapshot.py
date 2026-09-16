@@ -8,6 +8,9 @@ the X API or the AI API while being viewed.
 from __future__ import annotations
 
 import html
+import base64
+import hashlib
+import json
 import shutil
 import sys
 from datetime import datetime, timedelta, timezone
@@ -20,10 +23,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from app.core.database import engine
-from app.models import Video
+from app.models import Report, Video
 
 
-BASE_URL = "https://xpeach.tv"
+BASE_URL = "https://www.xpeach.tv"
 MEDIA_BASE_URL = "https://admin.xpeach.tv"
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 OUTPUT = Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/xpeach-public").resolve()
@@ -42,6 +45,13 @@ def media(video: Video):
 def thumbnail(video: Video) -> str | None:
     first = video.media_items[0] if video.media_items else None
     return (first.thumbnail_url if first else None) or video.preview_image_url
+
+
+def media_dimensions(video: Video) -> str:
+    first = video.media_items[0] if video.media_items else None
+    if first and first.width and first.height:
+        return f' width="{first.width}" height="{first.height}"'
+    return ""
 
 
 def creator_name(video: Video) -> str:
@@ -71,12 +81,24 @@ def duration_label(video: Video) -> str:
     return f'<span class="duration">{seconds // 60}:{seconds % 60:02d}</span>'
 
 
+def video_title(video: Video) -> str:
+    return (video.display_title or "").strip() or f"{creator_name(video)}の動画"
+
+
+def video_description(video: Video) -> str:
+    category_names = [item.name for item in video.categories if item.is_active]
+    category_text = f" カテゴリ: {'、'.join(category_names)}。" if category_names else ""
+    curator_text = f" {video.curator_note.strip()}" if video.curator_note and video.curator_note.strip() else ""
+    return f"{creator_name(video)}（@{video.x_username}）の公開審査済み動画です。{category_text}{curator_text}"[:240]
+
+
 def card(video: Video) -> str:
     playable = media(video)
     poster = thumbnail(video)
     poster_attr = f' poster="{esc(poster)}"' if poster else ""
+    dimensions = media_dimensions(video)
     image = (
-        f'<img src="{esc(poster)}" alt="@{esc(video.x_username)}の動画サムネイル" loading="lazy" decoding="async">'
+        f'<img src="{esc(poster)}" alt="@{esc(video.x_username)}の動画サムネイル" loading="lazy" decoding="async"{dimensions}>'
         if poster
         else '<div class="guide-placeholder"><span>▶</span><strong>X動画クリップ</strong></div>'
     )
@@ -85,7 +107,7 @@ def card(video: Video) -> str:
         visual = (
             f'<div class="media-frame inline-player"><video class="inline-card-video" controls playsinline '
             f'preload="none" aria-label="@{esc(video.x_username)}の動画を再生"'
-            f'{poster_attr}>'
+            f'{poster_attr}{dimensions}>'
             f'<source src="{esc(media_url)}" type="video/mp4">動画を再生できません。</video></div>'
         )
     else:
@@ -100,42 +122,56 @@ def card(video: Video) -> str:
     )
 
 
-def shell(*, title: str, description: str, canonical_path: str, content: str, og_image: str | None = None) -> str:
+def shell(*, title: str, description: str, canonical_path: str, content: str,
+          og_image: str | None = None, og_type: str = "website", structured_data: dict | None = None,
+          robots: str = "index,follow,max-image-preview:large") -> str:
     canonical = f"{BASE_URL}{canonical_path}"
     og = f'<meta property="og:image" content="{esc(og_image)}">' if og_image else ""
+    twitter_image = f'<meta name="twitter:image" content="{esc(og_image)}">' if og_image else ""
+    structured_json = json.dumps(structured_data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/") if structured_data else ""
+    structured_script = f'<script type="application/ld+json">{structured_json}</script>' if structured_json else ""
+    script_hash = ""
+    if structured_json:
+        digest = base64.b64encode(hashlib.sha256(structured_json.encode()).digest()).decode()
+        script_hash = f" 'sha256-{digest}'"
     return f'''<!doctype html>
 <html lang="ja">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="description" content="{esc(description)}">
-  <meta name="robots" content="index,follow,max-image-preview:large">
+  <meta name="robots" content="{esc(robots)}">
   <link rel="canonical" href="{esc(canonical)}">
-  <meta property="og:type" content="website">
+  <meta property="og:type" content="{esc(og_type)}">
   <meta property="og:site_name" content="XPeach">
   <meta property="og:title" content="{esc(title)}">
   <meta property="og:description" content="{esc(description)}">
   <meta property="og:url" content="{esc(canonical)}">{og}
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://admin.xpeach.tv; img-src 'self' https://pbs.twimg.com data:; media-src https://admin.xpeach.tv; style-src 'self' 'unsafe-inline'; script-src 'self'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="{esc(title)}">
+  <meta name="twitter:description" content="{esc(description)}">{twitter_image}
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://admin.xpeach.tv; img-src 'self' https://pbs.twimg.com data:; media-src https://admin.xpeach.tv; style-src 'self' 'unsafe-inline'; script-src 'self'{script_hash}; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
+{structured_script}
   <title>{esc(title)} | XPeach</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/assets/app.css?v=20260916-4">
+  <link rel="stylesheet" href="/assets/app.css?v=20260916-5">
 </head>
 <body>
   <div class="age-gate" data-age-gate role="dialog" aria-modal="true" aria-labelledby="age-title">
-    <div class="age-card"><img src="/assets/logo.svg" alt="" width="54" height="54"><h1 id="age-title">18歳以上ですか？</h1><p>このサイトには18歳以上を対象としたコンテンツが含まれています。</p><button type="button" data-age-accept>18歳以上です</button><a href="https://www.google.com/">18歳未満です</a></div>
+    <div class="age-card"><img src="/assets/logo.svg" alt="" width="54" height="54"><p class="age-title" id="age-title" role="heading" aria-level="2">18歳以上ですか？</p><p>このサイトには18歳以上を対象としたコンテンツが含まれています。</p><button type="button" data-age-accept>18歳以上です</button><a href="https://www.google.com/">18歳未満です</a></div>
   </div>
   <header class="site-header"><div class="header-inner"><a class="brand" href="/"><img src="/assets/logo.svg" alt="" width="34" height="34"><b>XPeach</b></a><nav><a href="/new/">新着</a><a href="/popular/">人気</a><a href="/trending/">急上昇</a></nav></div></header>
   <main>{content}</main>
   <footer><span>XPeach — 元投稿を尊重するクリップガイド</span></footer>
-  <script src="/assets/app.js?v=20260916-4" defer></script>
+  <script src="/assets/app.js?v=20260916-5" defer></script>
 </body>
 </html>'''
 
 
 def listing(title: str, path: str, videos: list[Video]) -> str:
     cards = "".join(card(video) for video in videos) or '<div class="empty-state">公開動画はまだありません</div>'
-    heading = "" if path == "/" else f'<div class="page-heading"><h1>{esc(title)}</h1><span>{len(videos)}本</span></div>'
+    display_heading = "新着動画" if path == "/" else title
+    heading = f'<div class="page-heading"><h1>{esc(display_heading)}</h1><span>{len(videos)}本</span></div>'
     return shell(
         title=title,
         description="公開審査済みのX動画を、元投稿を尊重して紹介する動画ガイドです。",
@@ -148,27 +184,51 @@ def listing(title: str, path: str, videos: list[Video]) -> str:
 def detail(video: Video) -> str:
     playable = media(video)
     poster = thumbnail(video)
+    dimensions = media_dimensions(video)
     if playable:
         media_url = f"{MEDIA_BASE_URL}/media/video/{playable.id}"
         poster_attr = f' poster="{esc(poster)}"' if poster else ""
-        player = f'<video class="public-video-player" controls playsinline preload="metadata"{poster_attr}><source src="{esc(media_url)}" type="video/mp4">動画を再生できません。</video>'
+        player = f'<video class="public-video-player" controls playsinline preload="metadata"{poster_attr}{dimensions}><source src="{esc(media_url)}" type="video/mp4">動画を再生できません。</video>'
     elif poster:
-        player = f'<img class="detail-poster" src="{esc(poster)}" alt="@{esc(video.x_username)}の動画"><a class="x-button" href="{esc(video.x_post_url)}" target="_blank" rel="noopener noreferrer">Xで見る ↗</a>'
+        player = f'<img class="detail-poster" src="{esc(poster)}" alt="@{esc(video.x_username)}の動画" loading="eager" decoding="async"{dimensions}><a class="x-button" href="{esc(video.x_post_url)}" target="_blank" rel="noopener noreferrer">Xで見る ↗</a>'
     else:
         player = f'<div class="no-player">この動画はXで視聴できます。<a class="x-button" href="{esc(video.x_post_url)}" target="_blank" rel="noopener noreferrer">Xで見る ↗</a></div>'
     creator_url = f'https://x.com/{quote(video.x_username, safe="")}'
+    title = video_title(video)
+    description = video_description(video)
+    upload_date = x_posted_time(video)
+    if upload_date.tzinfo is None:
+        upload_date = upload_date.replace(tzinfo=timezone.utc)
+    structured_data = {
+        "@context": "https://schema.org",
+        "@type": "VideoObject",
+        "name": title,
+        "description": description,
+        "uploadDate": upload_date.isoformat(),
+    }
+    if poster:
+        structured_data["thumbnailUrl"] = [poster]
+    if playable:
+        structured_data["contentUrl"] = f"{MEDIA_BASE_URL}/media/video/{playable.id}"
+        duration_ms = playable.duration_ms or video.duration_ms
+        if duration_ms:
+            total_seconds = max(1, int(duration_ms / 1000))
+            minutes, seconds = divmod(total_seconds, 60)
+            structured_data["duration"] = f"PT{minutes}M{seconds}S"
     content = (
         f'<section class="video-detail"><div class="player-panel">{player}</div>'
         f'<a class="creator-account-card" href="{creator_url}" target="_blank" rel="noopener noreferrer">'
-        f'<strong>{esc(creator_name(video))}</strong><span>@{esc(video.x_username)} ↗</span></a>'
+        f'<h1>{esc(title)}</h1><span>@{esc(video.x_username)} ↗</span></a>'
         f'<a class="source-link" href="{esc(video.x_post_url)}" target="_blank" rel="noopener noreferrer">元のX投稿を開く ↗</a></section>'
     )
     return shell(
-        title=f"@{video.x_username}の動画",
-        description=f"{creator_name(video)}（@{video.x_username}）の公開動画です。",
+        title=title,
+        description=description,
         canonical_path=f"/video/{video.id}/",
         content=content,
         og_image=poster,
+        og_type="video.other",
+        structured_data=structured_data,
     )
 
 
@@ -185,11 +245,14 @@ def main():
     with Session(engine) as db:
         videos = list(db.scalars(
             select(Video).options(
-                selectinload(Video.media_items), selectinload(Video.source_account)
+                selectinload(Video.media_items), selectinload(Video.source_account),
+                selectinload(Video.categories), selectinload(Video.tags),
             ).where(
                 Video.publication_status == "published",
+                Video.status != "blocked",
                 Video.is_public.is_(True),
                 Video.deleted_at_x.is_(None),
+                ~Video.reports.any(Report.status.in_(("open", "reviewing"))),
             )
         ).unique())
 
@@ -198,19 +261,38 @@ def main():
         since = datetime.now(timezone.utc) - timedelta(hours=48)
         trending = [item for item in popular if published_time(item).replace(tzinfo=published_time(item).tzinfo or timezone.utc) >= since]
 
-        write("index.html", listing("XPeach - Discover Trending Videos", "/", newest[:24]))
+        write("index.html", listing("新着動画を見つける", "/", newest[:24]))
         write("new/index.html", listing("新着動画", "/new/", newest))
         write("popular/index.html", listing("人気動画", "/popular/", popular))
         write("trending/index.html", listing("急上昇動画", "/trending/", trending))
 
         creators: dict[str, list[Video]] = {}
+        categories: dict[str, tuple[object, list[Video]]] = {}
         for video in newest:
             creators.setdefault(video.x_username, []).append(video)
+            for category in video.categories:
+                if category.is_active:
+                    categories.setdefault(category.slug, (category, []))[1].append(video)
             write(f"video/{video.id}/index.html", detail(video))
         for username, creator_videos in creators.items():
             write(
                 f"creator/{quote(username, safe='')}/index.html",
                 listing(f"@{username}の動画", f"/creator/{quote(username, safe='')}/", creator_videos),
+            )
+        category_links = "".join(
+            f'<a class="creator-account-card" href="/category/{quote(slug, safe="")}/"><h2>{esc(category.name)}</h2><span>{len(items)}本</span></a>'
+            for slug, (category, items) in sorted(categories.items(), key=lambda item: (item[1][0].sort_order, item[1][0].name))
+        ) or '<p>公開中のカテゴリはまだありません。</p>'
+        write("categories/index.html", shell(
+            title="動画カテゴリ",
+            description="XPeachで公開審査済みの動画をカテゴリから探せます。",
+            canonical_path="/categories/",
+            content=f'<section class="message-page"><h1>動画カテゴリ</h1>{category_links}</section>',
+        ))
+        for slug, (category, category_videos) in categories.items():
+            write(
+                f"category/{quote(slug, safe='')}/index.html",
+                listing(f"{category.name}の動画", f"/category/{quote(slug, safe='')}/", category_videos),
             )
 
         write("suggest-account/index.html", shell(
@@ -224,16 +306,32 @@ def main():
             description="指定されたページは見つかりませんでした。",
             canonical_path="/404",
             content='<section class="message-page"><h1>404</h1><p>ページが見つかりません。</p><a href="/">トップへ戻る</a></section>',
+            robots="noindex,nofollow",
         ))
 
-        urls = ["/", "/new/", "/popular/", "/trending/"]
-        urls += [f"/video/{video.id}/" for video in newest]
-        urls += [f"/creator/{quote(username, safe='')}/" for username in creators]
+        generated_at = datetime.now(timezone.utc)
+
+        def sitemap_url(path: str, modified: datetime | None = None) -> str:
+            value = modified or generated_at
+            if value.tzinfo is None:
+                value = value.replace(tzinfo=timezone.utc)
+            return f"  <url><loc>{BASE_URL}{path}</loc><lastmod>{value.date().isoformat()}</lastmod></url>\n"
+
+        urls = [(path, generated_at) for path in ("/", "/new/", "/popular/", "/trending/", "/categories/")]
+        urls += [(f"/video/{video.id}/", video.updated_at or published_time(video)) for video in newest]
+        urls += [
+            (f"/creator/{quote(username, safe='')}/", max((item.updated_at or published_time(item)) for item in items))
+            for username, items in creators.items()
+        ]
+        urls += [
+            (f"/category/{quote(slug, safe='')}/", max((item.updated_at or published_time(item)) for item in items))
+            for slug, (_, items) in categories.items()
+        ]
         sitemap = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' + "".join(
-            f"  <url><loc>{BASE_URL}{path}</loc></url>\n" for path in urls
+            sitemap_url(path, modified) for path, modified in urls
         ) + "</urlset>\n"
         write("sitemap.xml", sitemap)
-        write("robots.txt", f"User-agent: *\nDisallow: /admin\nDisallow: /report-received\nSitemap: {BASE_URL}/sitemap.xml\n")
+        write("robots.txt", f"User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /admin/\nDisallow: /api/admin\nDisallow: /api/admin/\nDisallow: /report-received\n\nSitemap: {BASE_URL}/sitemap.xml\n")
 
     assets = OUTPUT / "assets"
     assets.mkdir()
@@ -241,6 +339,7 @@ def main():
     shutil.copy("/app/app/static/brand/favicon.svg", assets / "favicon.svg")
     shutil.copy(PROJECT_ROOT / "public/assets/app.css", assets / "app.css")
     shutil.copy(PROJECT_ROOT / "public/assets/app.js", assets / "app.js")
+    shutil.copy(PROJECT_ROOT / "public/_headers", OUTPUT / "_headers")
     print(f"Exported {len(videos)} published videos to {OUTPUT}")
 
 
