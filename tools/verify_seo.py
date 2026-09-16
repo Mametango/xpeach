@@ -33,6 +33,7 @@ for path in html_files:
     require('<meta property="og:url"' in source, f"missing og:url: {path}")
     require('<meta name="twitter:card"' in source, f"missing twitter card: {path}")
     require(source.count("<h1") == 1, f"expected exactly one h1: {path}")
+    require("media-src 'self'" in source, f"CSP blocks same-origin video playback: {path}")
 
 for path in (PUBLIC / "video").glob("*/index.html"):
     source = path.read_text(encoding="utf-8")

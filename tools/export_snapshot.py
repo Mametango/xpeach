@@ -152,7 +152,7 @@ def shell(*, title: str, description: str, canonical_path: str, content: str,
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="{esc(title)}">
   <meta name="twitter:description" content="{esc(description)}">{twitter_image}
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://admin.xpeach.tv; img-src 'self' https://pbs.twimg.com data:; media-src https://admin.xpeach.tv; style-src 'self' 'unsafe-inline'; script-src 'self'{script_hash}; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://admin.xpeach.tv; img-src 'self' https://pbs.twimg.com data:; media-src 'self' https://admin.xpeach.tv; style-src 'self' 'unsafe-inline'; script-src 'self'{script_hash}; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
 {structured_script}
   <title>{esc(document_title)}</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
