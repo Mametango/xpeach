@@ -35,7 +35,11 @@ for path in html_files:
     require(source.count("<h1") == 1, f"expected exactly one h1: {path}")
 
 for path in (PUBLIC / "video").glob("*/index.html"):
-    require('type="application/ld+json"' in path.read_text(encoding="utf-8"), f"missing VideoObject: {path}")
+    source = path.read_text(encoding="utf-8")
+    require('type="application/ld+json"' in source, f"missing VideoObject: {path}")
+    if 'class="public-video-player"' in source:
+        require('src="https://www.xpeach.tv/media/video/' in source, f"video is not using same-origin relay: {path}")
+        require('https://admin.xpeach.tv/media/video/' not in source, f"video leaks cross-subdomain source: {path}")
 
 expected_metadata = {
     "index.html": (

@@ -27,7 +27,7 @@ from app.models import Report, Video
 
 
 BASE_URL = "https://www.xpeach.tv"
-MEDIA_BASE_URL = "https://admin.xpeach.tv"
+MEDIA_BASE_URL = BASE_URL
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 OUTPUT = Path(sys.argv[1] if len(sys.argv) > 1 else "/tmp/xpeach-public").resolve()
 if OUTPUT == Path("/") or not str(OUTPUT).startswith("/tmp/"):
