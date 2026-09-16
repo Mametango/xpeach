@@ -64,7 +64,7 @@ for relative_path in ("index.html", "new/index.html", "popular/index.html", "tre
     source = (PUBLIC / relative_path).read_text(encoding="utf-8")
     require('data-inline-player' in source, f"listing does not use on-demand inline players: {relative_path}")
     require('<video class="inline-card-video"' not in source, f"listing eagerly creates video elements: {relative_path}")
-    require('/assets/app.js?v=20260916-6' in source, f"listing has stale script cache key: {relative_path}")
+    require('/assets/app.js?v=20260916-7' in source, f"listing has stale script cache key: {relative_path}")
 
 for relative_path, (title, description) in expected_metadata.items():
     source = (PUBLIC / relative_path).read_text(encoding="utf-8")

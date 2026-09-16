@@ -156,7 +156,7 @@ def shell(*, title: str, description: str, canonical_path: str, content: str,
 {structured_script}
   <title>{esc(document_title)}</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/assets/app.css?v=20260916-6">
+  <link rel="stylesheet" href="/assets/app.css?v=20260916-7">
 </head>
 <body>
   <div class="age-gate" data-age-gate role="dialog" aria-modal="true" aria-labelledby="age-title">
@@ -165,7 +165,7 @@ def shell(*, title: str, description: str, canonical_path: str, content: str,
   <header class="site-header"><div class="header-inner"><a class="brand" href="/"><img src="/assets/logo.svg" alt="" width="34" height="34"><b>XPeach</b></a><nav><a href="/new/">新着</a><a href="/popular/">人気</a><a href="/trending/">急上昇</a></nav></div></header>
   <main>{content}</main>
   <footer><span>XPeach — 元投稿を尊重するクリップガイド</span></footer>
-  <script src="/assets/app.js?v=20260916-6" defer></script>
+  <script src="/assets/app.js?v=20260916-7" defer></script>
 </body>
 </html>'''
 

@@ -93,7 +93,9 @@ const activateInlinePlayer = (container) => {
 
   container.classList.add('is-active');
   container.replaceChildren(video);
-  video.play().catch(() => {
+  video.load();
+  video.play().catch((error) => {
+    container.dataset.playbackError = error.name;
     // Native controls stay available if iOS needs a second explicit gesture.
   });
 };
