@@ -43,3 +43,63 @@ document.querySelector('[data-age-accept]')?.addEventListener('click', () => {
   gate?.remove();
   recordPageView();
 });
+
+const buildInlinePlaceholder = (container) => {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'inline-play-button';
+  button.setAttribute('aria-label', container.dataset.videoLabel || '動画を再生');
+
+  if (container.dataset.videoPoster) {
+    const image = document.createElement('img');
+    image.src = container.dataset.videoPoster;
+    image.alt = '';
+    image.loading = 'lazy';
+    image.decoding = 'async';
+    button.append(image);
+  } else {
+    const placeholder = document.createElement('span');
+    placeholder.className = 'guide-placeholder';
+    placeholder.textContent = 'X動画クリップ';
+    button.append(placeholder);
+  }
+
+  const icon = document.createElement('span');
+  icon.className = 'play-mark';
+  icon.setAttribute('aria-hidden', 'true');
+  icon.textContent = '▶';
+  button.append(icon);
+  return button;
+};
+
+const activateInlinePlayer = (container) => {
+  document.querySelectorAll('[data-inline-player].is-active').forEach((other) => {
+    if (other === container) return;
+    other.querySelector('video')?.pause();
+    other.classList.remove('is-active');
+    other.replaceChildren(buildInlinePlaceholder(other));
+  });
+
+  const video = document.createElement('video');
+  video.className = 'inline-card-video';
+  video.controls = true;
+  video.playsInline = true;
+  video.setAttribute('playsinline', '');
+  video.setAttribute('webkit-playsinline', '');
+  video.preload = 'metadata';
+  video.src = container.dataset.videoSrc;
+  video.setAttribute('aria-label', container.dataset.videoLabel || '動画を再生');
+  if (container.dataset.videoPoster) video.poster = container.dataset.videoPoster;
+
+  container.classList.add('is-active');
+  container.replaceChildren(video);
+  video.play().catch(() => {
+    // Native controls stay available if iOS needs a second explicit gesture.
+  });
+};
+
+document.addEventListener('click', (event) => {
+  const button = event.target.closest('[data-inline-player] .inline-play-button');
+  if (!button) return;
+  activateInlinePlayer(button.closest('[data-inline-player]'));
+});

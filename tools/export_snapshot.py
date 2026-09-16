@@ -105,10 +105,11 @@ def card(video: Video) -> str:
     if playable:
         media_url = f"{MEDIA_BASE_URL}/media/video/{playable.id}"
         visual = (
-            f'<div class="media-frame inline-player"><video class="inline-card-video" controls playsinline '
-            f'preload="none" aria-label="@{esc(video.x_username)}の動画を再生"'
-            f'{poster_attr}{dimensions}>'
-            f'<source src="{esc(media_url)}" type="video/mp4">動画を再生できません。</video></div>'
+            f'<div class="media-frame inline-player" data-inline-player '
+            f'data-video-src="{esc(media_url)}" data-video-label="@{esc(video.x_username)}の動画を再生"'
+            f' data-video-poster="{esc(poster or "")}">'
+            f'<button class="inline-play-button" type="button" aria-label="@{esc(video.x_username)}の動画を再生">'
+            f'{image}<span class="play-mark" aria-hidden="true">▶</span></button></div>'
         )
     else:
         visual = (
@@ -155,7 +156,7 @@ def shell(*, title: str, description: str, canonical_path: str, content: str,
 {structured_script}
   <title>{esc(document_title)}</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/assets/app.css?v=20260916-5">
+  <link rel="stylesheet" href="/assets/app.css?v=20260916-6">
 </head>
 <body>
   <div class="age-gate" data-age-gate role="dialog" aria-modal="true" aria-labelledby="age-title">
@@ -164,7 +165,7 @@ def shell(*, title: str, description: str, canonical_path: str, content: str,
   <header class="site-header"><div class="header-inner"><a class="brand" href="/"><img src="/assets/logo.svg" alt="" width="34" height="34"><b>XPeach</b></a><nav><a href="/new/">新着</a><a href="/popular/">人気</a><a href="/trending/">急上昇</a></nav></div></header>
   <main>{content}</main>
   <footer><span>XPeach — 元投稿を尊重するクリップガイド</span></footer>
-  <script src="/assets/app.js?v=20260916-5" defer></script>
+  <script src="/assets/app.js?v=20260916-6" defer></script>
 </body>
 </html>'''
 
