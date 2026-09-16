@@ -37,4 +37,31 @@ for path in html_files:
 for path in (PUBLIC / "video").glob("*/index.html"):
     require('type="application/ld+json"' in path.read_text(encoding="utf-8"), f"missing VideoObject: {path}")
 
+expected_metadata = {
+    "index.html": (
+        "XPeach｜Xで話題の動画を新着・人気・急上昇から探せる動画サイト",
+        "XPeachは、Xで話題の動画を新着・人気・急上昇から探せる動画サイトです。気になる投稿を見つけやすく整理して紹介します。",
+    ),
+    "new/index.html": (
+        "新着動画｜XPeach",
+        "XPeachの新着動画一覧。Xで話題の最新動画を見つけやすく整理して紹介します。",
+    ),
+    "popular/index.html": (
+        "人気動画｜XPeach",
+        "XPeachで人気の動画をチェック。多く見られているX動画を見つけやすくまとめています。",
+    ),
+    "trending/index.html": (
+        "急上昇動画｜XPeach",
+        "XPeachで注目が高まっている急上昇動画をチェック。今見られているX動画を探せます。",
+    ),
+}
+for relative_path, (title, description) in expected_metadata.items():
+    source = (PUBLIC / relative_path).read_text(encoding="utf-8")
+    require(f"<title>{title}</title>" in source, f"unexpected title: {relative_path}")
+    require(f'<meta name="description" content="{description}">' in source, f"unexpected description: {relative_path}")
+    require(f'<meta property="og:title" content="{title}">' in source, f"unexpected og:title: {relative_path}")
+    require(f'<meta property="og:description" content="{description}">' in source, f"unexpected og:description: {relative_path}")
+    require(f'<meta name="twitter:title" content="{title}">' in source, f"unexpected twitter:title: {relative_path}")
+    require(f'<meta name="twitter:description" content="{description}">' in source, f"unexpected twitter:description: {relative_path}")
+
 print(f"SEO verification passed: {len(locations)} sitemap URLs, {len(html_files)} HTML pages checked")

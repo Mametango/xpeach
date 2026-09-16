@@ -124,8 +124,9 @@ def card(video: Video) -> str:
 
 def shell(*, title: str, description: str, canonical_path: str, content: str,
           og_image: str | None = None, og_type: str = "website", structured_data: dict | None = None,
-          robots: str = "index,follow,max-image-preview:large") -> str:
+          robots: str = "index,follow,max-image-preview:large", exact_title: bool = False) -> str:
     canonical = f"{BASE_URL}{canonical_path}"
+    document_title = title if exact_title else f"{title} | XPeach"
     og = f'<meta property="og:image" content="{esc(og_image)}">' if og_image else ""
     twitter_image = f'<meta name="twitter:image" content="{esc(og_image)}">' if og_image else ""
     structured_json = json.dumps(structured_data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/") if structured_data else ""
@@ -152,7 +153,7 @@ def shell(*, title: str, description: str, canonical_path: str, content: str,
   <meta name="twitter:description" content="{esc(description)}">{twitter_image}
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://admin.xpeach.tv; img-src 'self' https://pbs.twimg.com data:; media-src https://admin.xpeach.tv; style-src 'self' 'unsafe-inline'; script-src 'self'{script_hash}; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
 {structured_script}
-  <title>{esc(title)} | XPeach</title>
+  <title>{esc(document_title)}</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/assets/app.css?v=20260916-5">
 </head>
@@ -168,16 +169,18 @@ def shell(*, title: str, description: str, canonical_path: str, content: str,
 </html>'''
 
 
-def listing(title: str, path: str, videos: list[Video]) -> str:
+def listing(title: str, path: str, videos: list[Video], *, seo_title: str | None = None,
+            description: str = "公開審査済みのX動画を、元投稿を尊重して紹介する動画ガイドです。") -> str:
     cards = "".join(card(video) for video in videos) or '<div class="empty-state">公開動画はまだありません</div>'
     display_heading = "新着動画" if path == "/" else title
     heading = f'<div class="page-heading"><h1>{esc(display_heading)}</h1><span>{len(videos)}本</span></div>'
     return shell(
-        title=title,
-        description="公開審査済みのX動画を、元投稿を尊重して紹介する動画ガイドです。",
+        title=seo_title or title,
+        description=description,
         canonical_path=path,
         content=f'<section class="catalog">{heading}<div class="video-grid">{cards}</div></section>',
         og_image=thumbnail(videos[0]) if videos else None,
+        exact_title=seo_title is not None,
     )
 
 
@@ -261,10 +264,26 @@ def main():
         since = datetime.now(timezone.utc) - timedelta(hours=48)
         trending = [item for item in popular if published_time(item).replace(tzinfo=published_time(item).tzinfo or timezone.utc) >= since]
 
-        write("index.html", listing("新着動画を見つける", "/", newest[:24]))
-        write("new/index.html", listing("新着動画", "/new/", newest))
-        write("popular/index.html", listing("人気動画", "/popular/", popular))
-        write("trending/index.html", listing("急上昇動画", "/trending/", trending))
+        write("index.html", listing(
+            "新着動画", "/", newest[:24],
+            seo_title="XPeach｜Xで話題の動画を新着・人気・急上昇から探せる動画サイト",
+            description="XPeachは、Xで話題の動画を新着・人気・急上昇から探せる動画サイトです。気になる投稿を見つけやすく整理して紹介します。",
+        ))
+        write("new/index.html", listing(
+            "新着動画", "/new/", newest,
+            seo_title="新着動画｜XPeach",
+            description="XPeachの新着動画一覧。Xで話題の最新動画を見つけやすく整理して紹介します。",
+        ))
+        write("popular/index.html", listing(
+            "人気動画", "/popular/", popular,
+            seo_title="人気動画｜XPeach",
+            description="XPeachで人気の動画をチェック。多く見られているX動画を見つけやすくまとめています。",
+        ))
+        write("trending/index.html", listing(
+            "急上昇動画", "/trending/", trending,
+            seo_title="急上昇動画｜XPeach",
+            description="XPeachで注目が高まっている急上昇動画をチェック。今見られているX動画を探せます。",
+        ))
 
         creators: dict[str, list[Video]] = {}
         categories: dict[str, tuple[object, list[Video]]] = {}
