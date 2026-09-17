@@ -32,12 +32,7 @@ Search ConsoleでHTMLファイル方式を選び、発行されたファイル�
 
 HTMLファイルを置けない場合は、エクスポート時に環境変数を設定します。確認コード自体はGitへコミットしません。
 
-```powershell
-$env:GOOGLE_SITE_VERIFICATION = "google-site-verification=XXXXXXXX"
-docker compose exec -e GOOGLE_SITE_VERIFICATION="$env:GOOGLE_SITE_VERIFICATION" web python /app/tools/export_snapshot.py /tmp/xpeach-public
-```
-
-生成HTMLの`<head>`へ`google-site-verification` metaタグが入り、値は公開HTMLに表示されます。確認コードを設定しない場合はタグを出力しません。
+スナップショット生成環境で、環境変数`GOOGLE_SITE_VERIFICATION`にSearch Consoleの確認コード（`google-site-verification=XXXXXXXX`）を設定して`tools/export_snapshot.py`を実行してください。生成HTMLの`<head>`へmetaタグが入り、値は公開HTMLに表示されます。確認コードを設定しない場合はタグを出力しません。確認コードは`.env`やGitHubへコミットしないでください。
 
 ## 5. sitemap.xmlを送信
 
