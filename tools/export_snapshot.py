@@ -136,6 +136,13 @@ def shell(*, title: str, description: str, canonical_path: str, content: str,
     if structured_json:
         digest = base64.b64encode(hashlib.sha256(structured_json.encode()).digest()).decode()
         script_hash = f" 'sha256-{digest}'"
+    nav_items = (("New", "/new/"), ("Popular", "/popular/"), ("Trending", "/trending/"))
+    active_nav = "/new/" if canonical_path == "/" else canonical_path
+    nav_links = "".join(
+        f'<a class="menu-pill{" is-active" if active_nav.startswith(path) else ""}" href="{path}"'
+        f'{" aria-current=\"page\"" if active_nav.startswith(path) else ""}>{label}</a>'
+        for label, path in nav_items
+    )
     return f'''<!doctype html>
 <html lang="ja">
 <head>
@@ -156,13 +163,13 @@ def shell(*, title: str, description: str, canonical_path: str, content: str,
 {structured_script}
   <title>{esc(document_title)}</title>
   <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/assets/app.css?v=20260916-7">
+  <link rel="stylesheet" href="/assets/app.css?v=20260916-8">
 </head>
 <body>
   <div class="age-gate" data-age-gate role="dialog" aria-modal="true" aria-labelledby="age-title">
     <div class="age-card"><img src="/assets/logo.svg" alt="" width="54" height="54"><p class="age-title" id="age-title" role="heading" aria-level="2">18歳以上ですか？</p><p>このサイトには18歳以上を対象としたコンテンツが含まれています。</p><button type="button" data-age-accept>18歳以上です</button><a href="https://www.google.com/">18歳未満です</a></div>
   </div>
-  <header class="site-header"><div class="header-inner"><a class="brand" href="/"><img src="/assets/logo.svg" alt="" width="34" height="34"><b>XPeach</b></a><nav><a href="/new/">新着</a><a href="/popular/">人気</a><a href="/trending/">急上昇</a></nav></div></header>
+  <header class="site-header"><div class="header-inner"><a class="brand" href="/"><img src="/assets/logo.svg" alt="" width="34" height="34"><b>XPeach</b></a><nav aria-label="Video menu">{nav_links}</nav></div></header>
   <main>{content}</main>
   <footer><span>XPeach — 元投稿を尊重するクリップガイド</span></footer>
   <script src="/assets/app.js?v=20260916-7" defer></script>

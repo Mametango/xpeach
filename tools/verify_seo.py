@@ -34,6 +34,11 @@ for path in html_files:
     require('<meta name="twitter:card"' in source, f"missing twitter card: {path}")
     require(source.count("<h1") == 1, f"expected exactly one h1: {path}")
     require("media-src 'self'" in source, f"CSP blocks same-origin video playback: {path}")
+    require('href="/new/"' in source and '>New</a>' in source, f"missing New navigation label: {path}")
+    require('href="/popular/"' in source and '>Popular</a>' in source, f"missing Popular navigation label: {path}")
+    require('href="/trending/"' in source and '>Trending</a>' in source, f"missing Trending navigation label: {path}")
+    require('>新着</a>' not in source and '>人気</a>' not in source and '>急上昇</a>' not in source,
+            f"legacy Japanese navigation label remains: {path}")
 
 for path in (PUBLIC / "video").glob("*/index.html"):
     source = path.read_text(encoding="utf-8")
