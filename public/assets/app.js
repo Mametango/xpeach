@@ -1,4 +1,13 @@
 const gate = document.querySelector('[data-age-gate]');
+const brand = document.querySelector('.brand');
+if (brand && !brand.querySelector('.xpeach-robot')) {
+  const robot = document.createElement('span'); robot.className='xpeach-robot state-idle'; robot.setAttribute('role','img'); robot.setAttribute('aria-label','XPeach robot');
+  robot.innerHTML='<i class="robot-head"></i><i class="robot-body"></i><i class="robot-leg robot-leg-a"></i><i class="robot-leg robot-leg-b"></i><i class="robot-beam"></i><span class="robot-status" aria-live="polite"></span>'; brand.prepend(robot);
+  const seq=['walk','scan','found','collect','victory','idle'], msg={scan:'SEARCHING...',found:'VIDEO FOUND!',collect:'GET!',victory:'COLLECTION +1'}; let timer;
+  const setState=(s)=>{robot.className=`xpeach-robot state-${s}`; robot.querySelector('.robot-status').textContent=msg[s]||''};
+  const schedule=()=>{timer=setTimeout(()=>{let i=0; const step=()=>{setState(seq[i++]); if(i<seq.length) timer=setTimeout(step,850); else schedule()}; step()},10000+Math.random()*10000)};
+  if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches) schedule(); window.XPeachRobot={setState,stop:()=>clearTimeout(timer)};
+}
 const ageVerified = document.cookie.split(';').some((item) => item.trim() === 'age_verified=true');
 const rememberAdult = () => {
   document.cookie = 'age_verified=true; Max-Age=31536000; Path=/; Domain=xpeach.tv; Secure; SameSite=Lax';
