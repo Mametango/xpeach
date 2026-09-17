@@ -11,6 +11,7 @@ import html
 import base64
 import hashlib
 import json
+import os
 import shutil
 import sys
 from datetime import datetime, timedelta, timezone
@@ -136,6 +137,11 @@ def shell(*, title: str, description: str, canonical_path: str, content: str,
     if structured_json:
         digest = base64.b64encode(hashlib.sha256(structured_json.encode()).digest()).decode()
         script_hash = f" 'sha256-{digest}'"
+    verification_code = os.getenv("GOOGLE_SITE_VERIFICATION", "").strip()
+    verification_meta = (
+        f'<meta name="google-site-verification" content="{esc(verification_code)}">\n'
+        if verification_code else ""
+    )
     nav_items = (("New", "/new/"), ("Popular", "/popular/"), ("Trending", "/trending/"))
     active_nav = "/new/" if canonical_path == "/" else canonical_path
     nav_links = "".join(
@@ -159,6 +165,7 @@ def shell(*, title: str, description: str, canonical_path: str, content: str,
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="{esc(title)}">
   <meta name="twitter:description" content="{esc(description)}">{twitter_image}
+  {verification_meta}
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; connect-src https://admin.xpeach.tv; img-src 'self' https://pbs.twimg.com data:; media-src 'self' https://admin.xpeach.tv; style-src 'self' 'unsafe-inline'; script-src 'self'{script_hash}; base-uri 'self'; form-action 'self'; frame-ancestors 'none'">
 {structured_script}
   <title>{esc(document_title)}</title>
