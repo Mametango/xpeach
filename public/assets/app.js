@@ -3,11 +3,16 @@ const brand = document.querySelector('.brand');
 if (brand && !brand.querySelector('.xpeach-robot')) {
   const robot = document.createElement('span'); robot.className='xpeach-robot state-idle'; robot.setAttribute('role','img'); robot.setAttribute('aria-label','XPeach robot');
   robot.innerHTML='<i class="robot-head"></i><i class="robot-body"></i><i class="robot-leg robot-leg-a"></i><i class="robot-leg robot-leg-b"></i><i class="robot-beam"></i><span class="robot-status" aria-live="polite"></span>'; brand.prepend(robot);
-  const spriteProbe = new Image(); spriteProbe.onload = () => robot.classList.add('has-sprite'); spriteProbe.src = '/assets/images/xpeach-robot-sprite.png';
+  const spriteProbe = new Image(); spriteProbe.onload = () => { if(spriteProbe.naturalWidth === 1344 && spriteProbe.naturalHeight === 96) robot.classList.add('has-sprite'); }; spriteProbe.src = '/assets/images/xpeach-robot-sprite.png';
   const seq=['walk','scan','found','collect','victory','idle'], msg={scan:'SEARCHING...',found:'VIDEO FOUND!',collect:'GET!',victory:'COLLECTION +1'}; let timer;
-  const setState=(s)=>{robot.className=`xpeach-robot state-${s}`; robot.querySelector('.robot-status').textContent=msg[s]||''};
-  const schedule=()=>{timer=setTimeout(()=>{let i=0; const step=()=>{setState(seq[i++]); if(i<seq.length) timer=setTimeout(step,850); else schedule()}; step()},10000+Math.random()*10000)};
-  if(!window.matchMedia('(prefers-reduced-motion: reduce)').matches) schedule(); window.XPeachRobot={setState,stop:()=>clearTimeout(timer)};
+  const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const setState=(s)=>{if(!seq.includes(s)) return; if(motion.matches) s='idle'; seq.forEach(name=>robot.classList.remove(`state-${name}`)); robot.classList.add(`state-${s}`); robot.querySelector('.robot-status').textContent=msg[s]||''};
+  const stop=()=>{clearTimeout(timer); setState('idle')};
+  const schedule=()=>{clearTimeout(timer); if(motion.matches || document.hidden) return; timer=setTimeout(()=>{let i=0; const step=()=>{setState(seq[i++]); if(i<seq.length) timer=setTimeout(step,1000); else schedule()}; step()},10000+Math.random()*10000)};
+  motion.addEventListener('change',()=>{stop(); schedule()});
+  document.addEventListener('visibilitychange',()=>{stop(); schedule()});
+  window.addEventListener('pagehide',stop);
+  schedule(); window.XPeachRobot={setState:(s)=>{stop(); setState(s)},stop};
 }
 const ageVerified = document.cookie.split(';').some((item) => item.trim() === 'age_verified=true');
 const rememberAdult = () => {

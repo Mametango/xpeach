@@ -8,3 +8,16 @@
 @media(max-width:700px){.xpeach-robot{width:34px;height:34px;flex-basis:34px;transform:scale(.82);transform-origin:left center;margin-right:-5px}.robot-status{font-size:8px;left:37px}}
 @media(prefers-reduced-motion:reduce){.xpeach-robot *{animation:none!important}.robot-beam,.robot-status{display:none!important}}
 .xpeach-robot.has-sprite{background-image:url('/assets/images/xpeach-robot-sprite.png');background-repeat:no-repeat;background-size:588px 42px;background-position:0 0}.xpeach-robot.has-sprite i{display:none}.xpeach-robot.has-sprite.state-idle{animation:robot-sprite-idle 1s steps(2,end) infinite}.xpeach-robot.has-sprite.state-walk{animation:robot-sprite-walk .7s steps(4,end) infinite}.xpeach-robot.has-sprite.state-scan{animation:robot-sprite-scan .8s steps(3,end) infinite}.xpeach-robot.has-sprite.state-collect{animation:robot-sprite-collect .8s steps(3,end) infinite}.xpeach-robot.has-sprite.state-victory{animation:robot-sprite-victory .8s steps(2,end) infinite}@keyframes robot-sprite-idle{0%{background-position:0 0}100%{background-position:-84px 0}}@keyframes robot-sprite-walk{0%{background-position:-84px 0}100%{background-position:-252px 0}}@keyframes robot-sprite-scan{0%{background-position:-252px 0}100%{background-position:-378px 0}}@keyframes robot-sprite-collect{0%{background-position:-378px 0}100%{background-position:-504px 0}}@keyframes robot-sprite-victory{0%{background-position:-504px 0}100%{background-position:-588px 0}}@media(max-width:700px){.xpeach-robot.has-sprite{background-size:476px 34px}}
+.brand:has(.xpeach-robot){position:relative;isolation:isolate;overflow:hidden;min-height:56px;padding-top:8px;padding-bottom:8px}
+.brand:has(.xpeach-robot)>img{display:none}
+.xpeach-robot{--robot-size:42px;width:var(--robot-size);height:var(--robot-size);flex-basis:var(--robot-size);transform:none;margin-right:0;pointer-events:none}
+.xpeach-robot.has-sprite{background-size:calc(var(--robot-size)*14) var(--robot-size);--first:0;--last:1;animation:robot-frames 1s steps(1,end) infinite}
+.xpeach-robot.has-sprite.state-idle{--first:0;--last:2;animation:robot-frames 1s steps(2,end) infinite}
+.xpeach-robot.has-sprite.state-walk{--first:2;--last:6;animation:robot-frames .7s steps(4,end) infinite}
+.xpeach-robot.has-sprite.state-scan{--first:6;--last:9;animation:robot-frames .8s steps(3,end) infinite}
+.xpeach-robot.has-sprite.state-found{animation:none;background-position:calc(var(--robot-size)*-8) 0}
+.xpeach-robot.has-sprite.state-collect{--first:9;--last:12;animation:robot-frames .8s steps(3,end) infinite}
+.xpeach-robot.has-sprite.state-victory{--first:12;--last:14;animation:robot-frames .8s steps(2,end) infinite}
+@keyframes robot-frames{from{background-position:calc(var(--robot-size)*var(--first)*-1) 0}to{background-position:calc(var(--robot-size)*var(--last)*-1) 0}}
+@media(max-width:700px){.xpeach-robot{--robot-size:34px;transform:none;margin-right:0}.xpeach-robot.has-sprite{background-size:calc(var(--robot-size)*14) var(--robot-size)}.brand:has(.xpeach-robot){gap:4px}.robot-status{left:35px;font-size:7px}}
+@media(prefers-reduced-motion:reduce){.xpeach-robot,.xpeach-robot.has-sprite{animation:none!important;background-position:0 0!important;transform:none!important}}
