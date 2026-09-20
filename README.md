@@ -1,19 +1,25 @@
-# XPeach Cloudflare static catalog
+# XPeach Cloudflare public edge
 
-This repository is the public, static Cloudflare Workers deployment for XPeach.
-`wrangler.jsonc` intentionally keeps `assets.directory` set to `./public`.
+This repository is the public Cloudflare Workers edge for XPeach.
+`wrangler.jsonc` intentionally keeps `assets.directory` set to `./public` for
+immutable brand assets and a safe fallback, while public pages are proxied to
+the FastAPI deployment at `admin.xpeach.tv`. FastAPI and the admin UI therefore
+read the same PostgreSQL catalog, so a newly published video is visible on the
+public site without exporting or committing a new HTML snapshot.
 
-The published catalog is a snapshot exported from the reviewed PostgreSQL data.
-Viewing the site does not call the X API or AI API. Administration, collection,
-account submissions, and reports remain in the private FastAPI deployment and
-must not be copied into `public`.
+The Worker never calls the X API or AI API. It only forwards public HTTP
+requests to the existing FastAPI origin; API collection remains in the
+separate worker/scheduler services.
 
-## Refreshing the catalog
+## Deployment
 
-Run `tools/export_snapshot.py` inside the existing FastAPI container, copy the
-generated `/tmp/xpeach-public` directory to `public`, then review and push it.
+Push `main` to deploy the Worker. Keep the `admin.xpeach.tv` Named Tunnel and
+the FastAPI Docker service running: the Worker uses that origin for `/`,
+`/new`, `/popular`, `/trending`, video pages, reports, robots, sitemap and the
+media relay. `/assets/*` continues to be served from the Worker asset bucket.
+
 Only videos with `publication_status=published`, `is_public=true`, and no X
-deletion timestamp are exported.
+deletion timestamp are returned by the FastAPI public repository.
 
 Published HTML uses `https://admin.xpeach.tv/media/video/{media_id}` as the
 video source. That endpoint relays only saved official X MP4 URLs and rechecks

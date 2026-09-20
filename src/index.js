@@ -1,32 +1,41 @@
 const CANONICAL_HOST = 'www.xpeach.tv';
 const APEX_HOST = 'xpeach.tv';
-const MEDIA_ORIGIN = 'https://admin.xpeach.tv';
+// The FastAPI deployment is the source of truth for both the admin catalog and
+// the public catalog.  Keeping this origin in one place prevents the Worker
+// from serving a stale HTML snapshot after new videos are published.
+const APP_ORIGIN = 'https://admin.xpeach.tv';
 
-function hasAgeVerification(request) {
-  return /(?:^|;\s*)age_verified=true(?:;|$)/.test(request.headers.get('Cookie') || '');
-}
-
-async function proxyMedia(request, url) {
+async function proxyApp(request, url) {
   if (!['GET', 'HEAD'].includes(request.method)) {
-    return new Response('Method Not Allowed', {status: 405, headers: {Allow: 'GET, HEAD'}});
-  }
-  if (!hasAgeVerification(request)) {
-    return new Response('Age verification required', {
-      status: 403,
-      headers: {'X-Robots-Tag': 'noindex, nofollow, noarchive'},
-    });
+    // Public report/event and age-gate forms are POST requests and must reach
+    // FastAPI as well.  Other methods are passed through unchanged.
   }
 
-  const upstreamUrl = new URL(`${url.pathname}${url.search}`, MEDIA_ORIGIN);
-  const upstreamResponse = await fetch(new Request(upstreamUrl, request));
-  const headers = new Headers(upstreamResponse.headers);
-  headers.set('Cache-Control', 'private, max-age=3600');
-  headers.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  const upstreamUrl = new URL(`${url.pathname}${url.search}`, APP_ORIGIN);
+  const requestHeaders = new Headers(request.headers);
+  // Do not let the internal hostname affect generated absolute URLs or
+  // redirect decisions.  Cookies remain host-only on the public hostname,
+  // which is intentional and avoids sharing them with the admin hostname.
+  requestHeaders.set('X-Forwarded-Host', url.host);
+  requestHeaders.set('X-Forwarded-Proto', 'https');
+  requestHeaders.delete('Host');
+  const init = {method: request.method, headers: requestHeaders, redirect: 'manual'};
+  if (!['GET', 'HEAD'].includes(request.method)) init.body = request.body;
+  const upstreamResponse = await fetch(new Request(upstreamUrl, init));
+  const responseHeaders = new Headers(upstreamResponse.headers);
+  // HTML and cookie-dependent responses must never be cached as a snapshot.
+  if ((responseHeaders.get('content-type') || '').includes('text/html') || responseHeaders.has('set-cookie')) {
+    responseHeaders.set('Cache-Control', 'private, no-store');
+  }
   return new Response(upstreamResponse.body, {
     status: upstreamResponse.status,
     statusText: upstreamResponse.statusText,
-    headers,
+    headers: responseHeaders,
   });
+}
+
+function isAssetRequest(pathname) {
+  return pathname.startsWith('/assets/') || pathname === '/favicon.ico';
 }
 
 export default {
@@ -39,11 +48,12 @@ export default {
       return Response.redirect(url.toString(), 301);
     }
 
-    if (/^\/media\/video\/\d+$/.test(url.pathname)) {
-      return proxyMedia(request, url);
-    }
+    // Only immutable brand assets remain on the static Worker bucket. All
+    // pages, media relay requests, forms, robots and sitemap are read from the
+    // FastAPI/PostgreSQL deployment so admin and public counts cannot diverge.
+    if (isAssetRequest(url.pathname)) return env.ASSETS.fetch(request);
 
-    const response = await env.ASSETS.fetch(request);
+    const response = await proxyApp(request, url);
     const headers = new Headers(response.headers);
     if (url.pathname === '/admin' || url.pathname.startsWith('/admin/') ||
         url.pathname === '/api/admin' || url.pathname.startsWith('/api/admin/')) {
