@@ -23,6 +23,16 @@ async function proxyApp(request, url) {
   if (!['GET', 'HEAD'].includes(request.method)) init.body = request.body;
   const upstreamResponse = await fetch(new Request(upstreamUrl, init));
   const responseHeaders = new Headers(upstreamResponse.headers);
+  // FastAPI may emit an absolute redirect using the internal origin when it
+  // normalizes `/new/`, `/video/123/`, or sends an age-gate redirect. Keep the
+  // browser on the public hostname while preserving path and query string.
+  const location = responseHeaders.get('location');
+  if (location) {
+    const internalPrefix = `${APP_ORIGIN}`;
+    if (location === internalPrefix || location.startsWith(`${internalPrefix}/`)) {
+      responseHeaders.set('location', `https://${url.host}${location.slice(internalPrefix.length)}`);
+    }
+  }
   // HTML and cookie-dependent responses must never be cached as a snapshot.
   if ((responseHeaders.get('content-type') || '').includes('text/html') || responseHeaders.has('set-cookie')) {
     responseHeaders.set('Cache-Control', 'private, no-store');
