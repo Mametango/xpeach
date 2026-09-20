@@ -6,11 +6,6 @@ const APEX_HOST = 'xpeach.tv';
 const APP_ORIGIN = 'https://admin.xpeach.tv';
 
 async function proxyApp(request, url) {
-  if (!['GET', 'HEAD'].includes(request.method)) {
-    // Public report/event and age-gate forms are POST requests and must reach
-    // FastAPI as well.  Other methods are passed through unchanged.
-  }
-
   const upstreamUrl = new URL(`${url.pathname}${url.search}`, APP_ORIGIN);
   const requestHeaders = new Headers(request.headers);
   // Do not let the internal hostname affect generated absolute URLs or
