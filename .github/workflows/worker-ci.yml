@@ -1,0 +1,32 @@
+name: worker-ci
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+      - synchronize
+      - reopened
+      - ready_for_review
+
+permissions:
+  contents: read
+
+jobs:
+  worker-ci:
+    name: worker-ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Check Worker JavaScript syntax
+        run: node --check src/index.js
+
+      - name: Validate Wrangler configuration without deploying
+        run: npx --yes wrangler@4.151.0 deploy --dry-run --config wrangler.jsonc
